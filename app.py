@@ -28,14 +28,15 @@ def list_tasks(update, context):
     if not tasks:
         update.message.reply_text("No tasks found.")
         return
-    message = "\n".join([f"{i+1}. {t['task']}" for i, t in enumerate(tasks)])
+    message = "\n".join(["{}. {}".format(i+1, t['task']) for i, t in enumerate(tasks)])
+
     update.message.reply_text("Task list:\n" + message)
 
 def delete(update, context):
     try:
         index = int(context.args[0]) - 1
     except:
-        update.message.reply_text("❗️ Please provide a valid task number.")
+        update.message.reply_text("Please provide a valid task number.")
         return
     with open(DATA_FILE, "r+") as f:
         tasks = json.load(f)
@@ -44,13 +45,13 @@ def delete(update, context):
             f.seek(0)
             f.truncate()
             json.dump(tasks, f, indent=2)
-            update.message.reply_text(f"🗑 Deleted: {removed['task']}")
+            update.message.reply_text("Deleted: {}".format(removed["task"]))
         else:
-            update.message.reply_text("❗️ Invalid task number.")
+            update.message.reply_text("Invalid task number.")
 
 def start(update, context):
     update.message.reply_text(
-        "👋 Welcome! This bot helps you manage tasks.\n\n"
+        " Welcome! This bot helps you manage tasks.\n\n"
         "Available commands:\n"
         "/add [task description] - Add a new task\n"
         "/list - Show all tasks\n"
