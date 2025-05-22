@@ -1,10 +1,17 @@
-from flask import Flask
+from telegram.ext import Updater, CommandHandler
+import os
 
-app = Flask(__name__)
+# Your bot token here (or set TELEGRAM_TOKEN as an environment variable)
+TOKEN = os.getenv("TELEGRAM_TOKEN", "YOUR_TOKEN_HERE")
 
-@app.route('/ping')
-def ping():
-    return "pong"
+def start(update, context):
+    update.message.reply_text("Hi!")
 
-if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=3000)
+updater = Updater(TOKEN, use_context=True)
+dp = updater.dispatcher
+
+dp.add_handler(CommandHandler("start", start))
+
+print("Bot is running...")
+updater.start_polling()
+updater.idle()
