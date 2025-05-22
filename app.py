@@ -1,48 +1,41 @@
-import json
-import os
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
-from dotenv import load_dotenv
+from telegram.ext import Updater, CommandHandler
+import json, os
 
-load_dotenv()
 TOKEN = os.getenv("TELEGRAM_TOKEN")
-
 DATA_FILE = "data/tasks.json"
 
-# اگر فایل json وجود نداره، بساز
+# Create tasks file if it doesn't exist
 if not os.path.exists(DATA_FILE):
+    os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
     with open(DATA_FILE, "w") as f:
         json.dump([], f)
 
-# اضافه کردن تسک
-async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def add(update, context):
     text = " ".join(context.args)
     if not text:
-        await update.message.reply_text("❗️ لطفاً متن تسک رو وارد کن.")
+        update.message.reply_text("Please provide a task description.")
         return
     with open(DATA_FILE, "r+") as f:
         tasks = json.load(f)
         tasks.append({"task": text})
         f.seek(0)
         json.dump(tasks, f, indent=2)
-    await update.message.reply_text(f"✅ تسک اضافه شد: {text}")
+    update.message.reply_text("Task added:".format(text))
 
-# نمایش لیست تسک‌ها
-async def list_tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def list_tasks(update, context):
     with open(DATA_FILE, "r") as f:
         tasks = json.load(f)
     if not tasks:
-        await update.message.reply_text("📭 لیست تسک‌ها خالیه.")
+        update.message.reply_text("No tasks found.")
         return
     message = "\n".join([f"{i+1}. {t['task']}" for i, t in enumerate(tasks)])
-    await update.message.reply_text("📝 لیست تسک‌ها:\n" + message)
+    update.message.reply_text("Task list:\n" + message)
 
-# حذف تسک
-async def delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def delete(update, context):
     try:
         index = int(context.args[0]) - 1
     except:
-        await update.message.reply_text("❗️ لطفاً شماره تسک رو وارد کن.")
+        update.message.reply_text("❗️ Please provide a valid task number.")
         return
     with open(DATA_FILE, "r+") as f:
         tasks = json.load(f)
@@ -51,20 +44,27 @@ async def delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f.seek(0)
             f.truncate()
             json.dump(tasks, f, indent=2)
-            await update.message.reply_text(f"🗑 حذف شد: {removed['task']}")
+            update.message.reply_text(f"🗑 Deleted: {removed['task']}")
         else:
-            await update.message.reply_text("❗️ شماره معتبر نیست.")
+            update.message.reply_text("❗️ Invalid task number.")
 
-# استارت
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("سلام! 👋 این بات برای مدیریت تسک‌هاست.\nدستورها:\n/add [تسک]\n/list\n/delete [شماره]")
+def start(update, context):
+    update.message.reply_text(
+        "👋 Welcome! This bot helps you manage tasks.\n\n"
+        "Available commands:\n"
+        "/add [task description] - Add a new task\n"
+        "/list - Show all tasks\n"
+        "/delete [number] - Delete a task"
+    )
 
-# راه‌اندازی برنامه
-app = ApplicationBuilder().token(TOKEN).build()
-app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("add", add))
-app.add_handler(CommandHandler("list", list_tasks))
-app.add_handler(CommandHandler("delete", delete))
+updater = Updater(TOKEN)
+dp = updater.dispatcher
+
+dp.add_handler(CommandHandler("start", start))
+dp.add_handler(CommandHandler("add", add))
+dp.add_handler(CommandHandler("list", list_tasks))
+dp.add_handler(CommandHandler("delete", delete))
 
 print("Bot is running...")
-app.run_polling()
+updater.start_polling()
+updater.idle()
